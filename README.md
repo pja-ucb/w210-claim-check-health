@@ -1,7 +1,7 @@
 # Welcome to the ClaimCheck Health GitHub Repository
 -----
 
-Central reference repo for the ClaimCheck Health prototype, created in 2026 by **Tim Platz, Shruti Mahadevan, Jagriti Singh, and Pedro Alvarez**.
+Central reference repo for the ClaimCheck Health capstone group, created in 2026 by **Tim Platz, Shruti Mahadevan, Jagriti Singh, and Pedro Alvarez**.
 
 This project is intentionally modular so each workflow owner (Modeling, RAG Architecture, UI) can evolve their piece independently while integrating into a shared end-to-end demo.
 

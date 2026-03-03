@@ -1,4 +1,5 @@
-# ClaimCheck Health Prototype
+# Welcome to the ClaimCheck Health GitHub Repository
+-----
 
 Central reference repo for the ClaimCheck Health prototype, created in 2026 by **Tim Platz, Shruti Mahadevan, Jagriti Singh, and Pedro Alvarez**.
 

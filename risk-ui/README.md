@@ -4,7 +4,6 @@ This folder is a **clean copy** of only the **ClaimCheck Health** web app: FastA
 
 **Not included here (by design):**
 
-- `risk_ui/docs/` — presentation assets (e.g. diagrams unrelated to the app)
 - `risk_ui/backend/.venv/` — recreate locally with `python -m venv .venv` and `pip install -r requirements.txt`
 
 **Still required from the parent repo** (paths assume this package lives at `w210/claimcheck_health/`):

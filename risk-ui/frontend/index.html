@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClaimCheck — Outpatient NN scoring &amp; policy context</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>ClaimCheck</h1>
+      <p class="subtitle">
+        Upload outpatient claims CSV. Each row is scored by the <strong>outpatient neural network</strong> (fraud-risk
+        probability vs. the API threshold) with a small rules blend for the combined score and flag. Then use
+        <strong>Generate Context</strong> on a row (or below) for CMS-policy–grounded review text.
+      </p>
+    </header>
+
+    <div class="card">
+      <h2>Outpatient NN scoring</h2>
+      <p class="hint">
+        The API serves a single outpatient stack: Keras <code>outpatient_nn.keras</code>, scaler, encoder (if any), and
+        <code>outpatient_thresholds.json</code> from <code>OUTPATIENT_MODEL_DIR</code>. This page does not call any other
+        model.
+      </p>
+      <label for="claims-file">Claims CSV</label>
+      <input id="claims-file" type="file" accept=".csv" />
+
+      <button id="score-btn">Run scoring</button>
+    </div>
+
+    <div class="card">
+      <h2>Batch summary</h2>
+      <div id="summary">No results yet.</div>
+      <div id="progress" class="progress"></div>
+    </div>
+
+    <div class="card">
+      <h2>Results</h2>
+      <button id="export-btn" type="button" disabled>Export results (with reviews)</button>
+      <div id="results-toolbar" class="results-toolbar hidden">
+        <label class="checkbox-label">
+          <input type="checkbox" id="filter-flagged-only" />
+          Flagged only
+        </label>
+        <span id="results-page-info" class="results-page-info" aria-live="polite"></span>
+      </div>
+      <div id="results">No results yet.</div>
+      <div id="results-pagination" class="results-pagination hidden" aria-label="Results pages"></div>
+    </div>
+
+    <div class="card policy-review-card" id="policy-review">
+      <h2>Generate context</h2>
+      <p class="hint">
+        Loads claim + HCPCS from the claims file, searches the CMS policy index, and returns a recommendation. Expect
+        <strong>~3 minutes</strong> per run. Rows above trigger this automatically when you use <strong>Generate Context</strong>.
+      </p>
+      <div class="policy-toolbar">
+        <button id="policy-health-btn" type="button" class="btn-secondary">Check data paths</button>
+        <span id="policy-health-msg" class="policy-health-msg" aria-live="polite"></span>
+      </div>
+      <label for="policy-claim-id">Claim ID (CLM_ID)</label>
+      <input
+        id="policy-claim-id"
+        type="text"
+        placeholder="e.g. 542192281063886 — or click Generate Context on a row above"
+        autocomplete="off"
+      />
+      <div class="policy-actions">
+        <button id="policy-run-btn" type="button" class="btn-primary">Generate Context</button>
+        <span id="policy-elapsed" class="policy-elapsed" aria-live="polite"></span>
+        <span id="policy-status" class="policy-status" aria-live="polite"></span>
+      </div>
+      <div id="policy-summary" class="policy-summary hidden"></div>
+      <div id="policy-tools-after" class="policy-tools-after hidden">
+        <button id="policy-copy-json-btn" type="button" class="btn-secondary">Copy full JSON</button>
+      </div>
+      <details id="policy-raw-wrap" class="hidden">
+        <summary>Full JSON response</summary>
+        <pre id="policy-raw" class="policy-raw"></pre>
+      </details>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

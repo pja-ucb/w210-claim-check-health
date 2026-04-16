@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClaimCheck — offline toy (no neural network)</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
+      .card { border: 1px solid #ddd; padding: 16px; margin-bottom: 16px; border-radius: 6px; }
+      .warn { background: #fff8e6; border-color: #e6c200; }
+      label { display: block; font-weight: bold; margin-bottom: 6px; }
+      input[type="file"] { margin-bottom: 12px; }
+      button { padding: 10px 14px; cursor: pointer; }
+      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+      .flag-true { color: #b00020; font-weight: bold; }
+      .flag-false { color: #1b5e20; font-weight: bold; }
+      small { color: #555; }
+    </style>
+  </head>
+  <body>
+    <h1>Offline toy scorer</h1>
+    <div class="card warn">
+      <strong>Not the production stack.</strong> This page does <em>not</em> call the API or load
+      <code>outpatient_nn.keras</code>. It only applies a tiny amount-based heuristic plus two rules so you can test CSV
+      parsing without a backend. For real outpatient NN scoring and policy context, use <code>frontend/index.html</code>
+      with uvicorn.
+    </div>
+
+    <div class="card">
+      <label for="claims-file">Claims CSV</label>
+      <input id="claims-file" type="file" accept=".csv" />
+
+      <button id="score-btn">Run toy scoring</button>
+      <div><small>SynPUF-style columns supported; heuristic uses payment amount only.</small></div>
+    </div>
+
+    <div class="card">
+      <h2>Summary</h2>
+      <div id="summary">No results yet.</div>
+    </div>
+
+    <div class="card">
+      <h2>Results</h2>
+      <div id="results">No results yet.</div>
+    </div>
+
+    <script>
+      const fileInput = document.getElementById("claims-file");
+      const scoreBtn = document.getElementById("score-btn");
+      const resultsDiv = document.getElementById("results");
+      const summaryDiv = document.getElementById("summary");
+
+      function parseCsv(text) {
+        const lines = text.trim().split(/\r?\n/);
+        if (lines.length < 2) return [];
+        const headers = lines[0].split(",").map(h => h.trim());
+        return lines.slice(1).map(line => {
+          const values = line.split(",").map(v => v.trim());
+          const row = {};
+          headers.forEach((h, i) => { row[h] = values[i] ?? ""; });
+          return row;
+        });
+      }
+
+      function safeFloat(v) {
+        const n = parseFloat(v);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      function scoreClaim(row) {
+        const claimId = row.claim_id || row.claimId || row.CLAIM_ID || "";
+        const claimAmount = safeFloat(row.claim_amount ?? row.CLM_PMT_AMT);
+
+        let ruleScore = 0.0;
+        const reasons = [];
+
+        if (claimAmount !== null && claimAmount > 50000) {
+          ruleScore += 0.4;
+          reasons.push("High claim amount");
+        }
+        if (!claimId) {
+          ruleScore += 0.2;
+          reasons.push("Missing claim id");
+        }
+
+        const amountHeuristic = claimAmount ? Math.min(claimAmount / 100000, 1) : 0.1;
+        const toyScore = Math.round((0.6 * amountHeuristic + 0.4 * Math.min(ruleScore, 1)) * 1000) / 1000;
+        const flag = toyScore >= 0.7 || ruleScore >= 0.8;
+
+        return { claim_id: claimId, toy_score: toyScore, flag, reasons };
+      }
+
+      function renderResults(results) {
+        const total = results.length;
+        const flagged = results.filter(r => r.flag).length;
+        summaryDiv.textContent = `Total: ${total}, Flagged: ${flagged} (${total ? ((flagged / total) * 100).toFixed(1) : 0}%)`;
+
+        const rows = results.map(r => `
+          <tr>
+            <td>${r.claim_id || "(missing)"}</td>
+            <td>${r.toy_score.toFixed(3)}</td>
+            <td class="${r.flag ? "flag-true" : "flag-false"}">${r.flag}</td>
+            <td>${r.reasons.length ? r.reasons.join("; ") : "No rule triggers"}</td>
+          </tr>
+        `).join("");
+
+        resultsDiv.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>Claim ID</th>
+                <th>Toy score (not NN)</th>
+                <th>Flag</th>
+                <th>Reasons</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      }
+
+      scoreBtn.addEventListener("click", async () => {
+        const file = fileInput.files[0];
+        if (!file) {
+          alert("Please upload a CSV file.");
+          return;
+        }
+        const text = await file.text();
+        const rows = parseCsv(text);
+        if (!rows.length) {
+          alert("CSV appears empty.");
+          return;
+        }
+        const results = rows.map(row => scoreClaim(row));
+        renderResults(results);
+      });
+    </script>
+  </body>
+</html>
